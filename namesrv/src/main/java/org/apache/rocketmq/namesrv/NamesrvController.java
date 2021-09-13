@@ -100,6 +100,10 @@ public class NamesrvController {
             }
         }, 1, 10, TimeUnit.MINUTES);
 
+        /**
+         * 如果SSL没有禁止，开启 fileWatchService 监控SSL证书的变化，如果有改变加载最新的SSL
+         * @see TlsMode
+         */
         if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
             // Register a listener to reload SslContext
             try {

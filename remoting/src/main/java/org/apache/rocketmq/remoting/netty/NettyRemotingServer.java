@@ -236,6 +236,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             this.nettyEventExecutor.start();
         }
 
+        // TODO 推荐使用ScheduledExecutorService代替Timer吧
         this.timer.scheduleAtFixedRate(new TimerTask() {
 
             @Override

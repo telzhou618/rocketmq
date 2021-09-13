@@ -61,22 +61,28 @@ public class FileWatchService extends ServiceThread {
         return "FileWatchService";
     }
 
+    /**
+     * 开启一个新的线程，循环遍历所有的文件路径，检查是否有更新。
+     */
     @Override
     public void run() {
         log.info(this.getServiceName() + " service started");
 
         while (!this.isStopped()) {
             try {
+                // 让线程等等一段时间
                 this.waitForRunning(WATCH_INTERVAL);
 
                 for (int i = 0; i < watchFiles.size(); i++) {
                     String newHash;
                     try {
+                        // 计算新文件的md5
                         newHash = hash(watchFiles.get(i));
                     } catch (Exception ignored) {
                         log.warn(this.getServiceName() + " service has exception when calculate the file hash. ", ignored);
                         continue;
                     }
+                    // 如果文件新的md5值和旧的不相等说明文件有变化，执行更新
                     if (!newHash.equals(fileCurrentHash.get(i))) {
                         fileCurrentHash.set(i, newHash);
                         listener.onChanged(watchFiles.get(i));
@@ -89,6 +95,13 @@ public class FileWatchService extends ServiceThread {
         log.info(this.getServiceName() + " service end");
     }
 
+    /**
+     * 根据文件绝对路径获取文件的md5值
+     * @param filePath 文件绝对路径
+     * @return
+     * @throws IOException
+     * @throws NoSuchAlgorithmException
+     */
     private String hash(String filePath) throws IOException, NoSuchAlgorithmException {
         Path path = Paths.get(filePath);
         md.update(Files.readAllBytes(path));
@@ -96,6 +109,9 @@ public class FileWatchService extends ServiceThread {
         return UtilAll.bytes2string(hash);
     }
 
+    /**
+     * 文件有变化时，执行该事件
+     */
     public interface Listener {
         /**
          * Will be called when the target files are changed

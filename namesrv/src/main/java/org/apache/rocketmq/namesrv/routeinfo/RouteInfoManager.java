@@ -426,11 +426,15 @@ public class RouteInfoManager {
         return null;
     }
 
+    /**
+     * 遍历所有的broker,提出2分钟内没上报的broker,以保证所有的broker是存活的
+     */
     public void scanNotActiveBroker() {
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, BrokerLiveInfo> next = it.next();
             long last = next.getValue().getLastUpdateTimestamp();
+            // 判断broker最后一次上报时间是否在2分钟之内，超过2分钟没上报则提出该broker
             if ((last + BROKER_CHANNEL_EXPIRED_TIME) < System.currentTimeMillis()) {
                 RemotingUtil.closeChannel(next.getValue().getChannel());
                 it.remove();
@@ -445,6 +449,7 @@ public class RouteInfoManager {
         if (channel != null) {
             try {
                 try {
+                    // 加读锁，可并发读，但不能并发写
                     this.lock.readLock().lockInterruptibly();
                     Iterator<Entry<String, BrokerLiveInfo>> itBrokerLiveTable =
                         this.brokerLiveTable.entrySet().iterator();

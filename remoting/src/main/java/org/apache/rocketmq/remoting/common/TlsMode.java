@@ -27,8 +27,17 @@ package org.apache.rocketmq.remoting.common;
  */
 public enum TlsMode {
 
+    /**
+     * 禁用SSL
+     */
     DISABLED("disabled"),
+    /**
+     * 可支持SSL
+     */
     PERMISSIVE("permissive"),
+    /**
+     * 强制使用SSL连接
+     */
     ENFORCING("enforcing");
 
     private String name;
