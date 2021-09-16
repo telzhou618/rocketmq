@@ -577,7 +577,59 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         long beginTimestampFirst = System.currentTimeMillis();
         long beginTimestampPrev = beginTimestampFirst;
         long endTimestamp = beginTimestampFirst;
+        /**
+         *
+         * 根据 topic 名称查询topic的信息，包含topic对应的broker,可用队列列表
+         * 查询结果JSON数据如下所示
+         *
+         * {
+         * 	"haveTopicRouterInfo":true,
+         * 	"messageQueueList":[
+         *                {
+         * 			"brokerName":"mac.local",
+         * 			"queueId":0,
+         * 			"topic":"TopicTest"
+         *        },
+         *        {
+         * 			"brokerName":"mac.local",
+         * 			"queueId":1,
+         * 			"topic":"TopicTest"
+         *        },
+         *        {
+         * 			"brokerName":"mac.local",
+         * 			"queueId":2,
+         * 			"topic":"TopicTest"
+         *        },
+         *        {
+         * 			"brokerName":"mac.local",
+         * 			"queueId":3,
+         * 			"topic":"TopicTest"
+         *        }
+         * 	],
+         * 	"orderTopic":false,
+         * 	"sendWhichQueue":{},
+         * 	"topicRouteData":{
+         * 		"brokerDatas":[
+         *            {
+         * 				"brokerAddrs":{0:"192.168.202.145:10911"},
+         * 				"brokerName":"mac.local",
+         * 				"cluster":"DefaultCluster"
+         *            }
+         * 		],
+         * 		"filterServerTable":{},
+         * 		"queueDatas":[
+         *            {
+         * 				"brokerName":"mac.local",
+         * 				"perm":6,
+         * 				"readQueueNums":4,
+         * 				"topicSysFlag":0,
+         * 				"writeQueueNums":4
+         *            }
+         * 		]* 	}
+         * }
+         */
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
+        // 判断是否有可用的 messageQueue
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
             boolean callTimeout = false;
             MessageQueue mq = null;
@@ -588,7 +640,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             String[] brokersSent = new String[timesTotal];
             for (; times < timesTotal; times++) {
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
-                // 选择一个MessageQueue
+                // 选择一个MessageQueue， 轮训负载均衡方式
                 MessageQueue mqSelected = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName);
                 if (mqSelected != null) {
                     mq = mqSelected;
@@ -600,6 +652,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             msg.setTopic(this.defaultMQProducer.withNamespace(msg.getTopic()));
                         }
                         long costTime = beginTimestampPrev - beginTimestampFirst;
+                        // timeout 发送消息超时时间，
+                        // costTime 发送消息总花费时间，超时则抛异常。
                         if (timeout < costTime) {
                             callTimeout = true;
                             break;
